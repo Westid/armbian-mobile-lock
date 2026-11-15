@@ -1,13 +1,13 @@
 # uart_logger.py
 import serial
 import sqlite3
-import time
 import signal
-import sys
+from datetime import datetime
+from string import ascii_letters
 
 
-SERIAL_PORT = '/dev/serial0'
-BAUD_RATE = 115200
+SERIAL_PORT = '/dev/ttyV0'
+BAUD_RATE = 9600
 DB_PATH = 'data.db'
 
 
@@ -17,9 +17,12 @@ def init_db():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT NOT NULL,
-            raw TEXT NOT NULL,
-            processed TEXT
+            event_type WARCHAR NOT NULL,
+            box_num INT NOT NULL,
+            box_event_num INT NOT NULL,
+            state INT NOT NULL,
+            battery_mv INT,
+            ts TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -30,13 +33,10 @@ def init_db():
 def process_line(line: str) -> str:
     """Здесь ваша логика: парсинг, преобразование, проверка и т.п."""
     # Пример: если TTGO шлёт "TEMP:23.5", достаём число
-    if line.startswith("TEMP:"):
-        try:
-            value = float(line.split(":", 1)[1])
-            return f"temp={value}"
-        except ValueError:
-            return "invalid_temp"
-    return line  # без изменений
+    e, box, event, state, battery_mv = map(
+        lambda x: int(x) if x not in ascii_letters else x, line.split(',')
+    )
+    return e, box, event, state, battery_mv
 
 
 # --- Основной цикл ---
@@ -54,8 +54,9 @@ def main():
 
     print(f"Слушаю {SERIAL_PORT} @ {BAUD_RATE}...")
     try:
-        while running:
+        while ser.readable():
             line = ser.readline()
+            ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.3f")
             if not line:
                 continue
 
@@ -63,15 +64,14 @@ def main():
             if not raw:
                 continue
 
-            processed = process_line(raw)
-            ts = time.strftime('%Y-%m-%d %H:%M:%S')
+            event_type, box_num, box_event_num, state, battery_mv = process_line(raw)
 
             conn.execute(
-                "INSERT INTO messages (timestamp, raw, processed) VALUES (?, ?, ?)",
-                (ts, raw, processed)
+                "INSERT INTO messages (event_type, box_num, box_event_num, state, battery_mv, ts) VALUES (?, ?, ?)",
+                (event_type, box_num, box_event_num, state, battery_mv, ts)
             )
             conn.commit()
-            print(f"[{ts}] {raw!r} → {processed!r}")
+            print(f"[{ts}] {raw!r} → {event_type, box_num, box_event_num, state, battery_mv, ts!r}")
     finally:
         ser.close()
         conn.close()

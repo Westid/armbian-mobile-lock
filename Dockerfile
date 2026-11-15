@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Устанавливаем только необходимые системные пакеты
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    sqlite3 \
+    sqlite3 git vim \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .

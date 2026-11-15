@@ -5,24 +5,24 @@ services:
     container_name: uart-app
     restart: unless-stopped
   
-  ports:
-    - "8080:8080"
-  
-  devices:
-    - "/dev/serial0:/dev/serial0:rwm"
-  
-  group_add:
-    - "dialout"
-  
-  volumes:
-      - "./data:/app/data"
+    ports:
+      - "8080:8080"
+    
+    devices:
+      - "/dev/ttyV0:/dev/ttyV1:rwm"
+    
+    group_add:
+      - "dialout"
+    
+    volumes:
+        - "./data:/app/data"
 
     environment:
       # Можно переопределить настройки без пересборки
-      SERIAL_PORT: /dev/serial0
+      SERIAL_PORT: /dev/ttyV1
       BAUD_RATE: "115200"
       DB_PATH: /app/data/data.db
       LOG_LEVEL: info
 
-  commands:
-    - python3 /app/src/app.py
+    command:
+      - /bin/bash
