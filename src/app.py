@@ -8,7 +8,7 @@ from string import ascii_letters
 
 SERIAL_PORT = '/dev/ttyV0'
 BAUD_RATE = 9600
-DB_PATH = 'data.db'
+DB_PATH = '/app/data/data.db'
 
 
 # --- Инициализация БД (один раз при старте) ---
@@ -67,7 +67,7 @@ def main():
             event_type, box_num, box_event_num, state, battery_mv = process_line(raw)
 
             conn.execute(
-                "INSERT INTO messages (event_type, box_num, box_event_num, state, battery_mv, ts) VALUES (?, ?, ?)",
+                "INSERT INTO messages (event_type, box_num, box_event_num, state, battery_mv, ts) VALUES (?, ?, ?, ?, ?, ?)",
                 (event_type, box_num, box_event_num, state, battery_mv, ts)
             )
             conn.commit()
